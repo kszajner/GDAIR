@@ -91,7 +91,7 @@ def send_to_discord(message, webhook_url):
     else:
         print("✅ Message sent successfully to Discord!")
 import os
-webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
+webhook_url = os.getenv("DISCORD_HOOK")
 latest_row = df.iloc[-1]
 timestamp = latest_row["date"].strftime("%Y-%m-%d")
 temp = latest_row["Temperature"]
@@ -123,8 +123,9 @@ else:
         message += f"✅ Good wind dispersion ({wind:.1f} m/s) supporting air quality.\n"
     message += f"**Outlook:** Air quality should remain within acceptable limits."
 message += f"\n*Model: RandomForest | Data: 72h moving window*"
-webhook_url = "YOUR_DISCORD_WEBHOOK_URL"
-if webhook_url and webhook_url != "YOUR_DISCORD_WEBHOOK_URL":
+
+
+if webhook_url:
     send_to_discord(message, webhook_url)
 else:
     print("ℹ️ No Discord webhook configured, skipping send.")
