@@ -3,4 +3,4 @@ pandas
 requests
 holidays
 datetime
-sklearn
+scikit-learn
