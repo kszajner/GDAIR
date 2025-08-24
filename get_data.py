@@ -1,15 +1,19 @@
 import requests
 import pandas as pd
 from datetime import datetime
+
+# Fetch PM2.5 and PM10 data from GIOŚ API
 sensor_ids = {
     "PM10": "4706",
     "PM2_5": "27667"
 }
 daily_averages = {}
+
+# Fetch data for each sensor
 for name, sensor_id in sensor_ids.items():
     url = f"https://api.gios.gov.pl/pjp-api/v1/rest/data/getData/{sensor_id}"
     response = requests.get(url)
-    if response.status_code == 200:
+    if response.status_code == 200: # Successful response
         json_data = response.json()
         measurements = []
         for entry in json_data['Lista danych pomiarowych']:
@@ -18,10 +22,12 @@ for name, sensor_id in sensor_ids.items():
                     'date': entry['Data'],
                     'value': entry['Wartość']
                 })
+
         df = pd.DataFrame(measurements)
         df['date'] = pd.to_datetime(df['date'])
         current_date = datetime.now().date()
         today_data = df[df['date'].dt.date == current_date]
+        # Calculate daily average if data is available
         if len(today_data) > 0:
             daily_average = today_data['value'].max()
             daily_averages[name] = daily_average
@@ -30,8 +36,14 @@ for name, sensor_id in sensor_ids.items():
     else:
         daily_averages[name] = None
 print("PM sensor data:", daily_averages)
-LAT, LON = 54.3523, 18.6466
+
+# Fetch weather data from Open-Meteo API
+LAT, LON = 54.3523, 18.6466 # Gdańsk coordinates
 def fetch_weather():
+    """
+    Fetch hourly weather data from Open-Meteo API.
+    Returns a dictionary with weather data.
+    """
     url = (
         "https://api.open-meteo.com/v1/forecast"
         f"?latitude={LAT}&longitude={LON}"
@@ -41,7 +53,13 @@ def fetch_weather():
     resp = requests.get(url)
     resp.raise_for_status()
     return resp.json()['hourly']
+
+
 def process_weather(data):
+    """
+    Process raw weather data to compute daily averages.
+    Returns a dictionary with daily average values.
+    """
     df = pd.DataFrame(data)
     df['time'] = pd.to_datetime(df['time'])
     today = df[df['time'].dt.date == datetime.now().date()]
@@ -55,12 +73,15 @@ def process_weather(data):
         'timestamp': datetime.now().isoformat()
     }
     return result
+# Append new data to CSV file
 def append_to_csv(record, filename="raw_data.csv"):
     df = pd.DataFrame([record])
     try:
         df.to_csv(filename, mode='a', index=False, header=not pd.io.common.file_exists(filename))
     except Exception as e:
         print("Error writing to CSV:", e)
+
+# Main execution
 weather_data = fetch_weather()
 summary = process_weather(weather_data)
 summary.update(daily_averages)
