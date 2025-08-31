@@ -36,12 +36,10 @@ for col in numeric_columns:
     if col in df.columns:
         df[col] = pd.to_numeric(df[col], errors='coerce')
 
-# Use wide layout for Streamlit app
 st.set_page_config(layout="wide")
 
 st.title("GDAIR Analytical & Monitoring Dashboard")
 
-# Layout: Use columns for main analytics
 main_col1, main_col2 = st.columns([2, 2])
 
 with main_col1:
@@ -78,8 +76,7 @@ with main_col2:
     st.subheader("Monitoring Table")
     st.dataframe(df[["date", "PM10", "PM2_5", "probability_high_pollution_t_minus_1", "avg_temperature", "avg_humidity", "avg_pressure", "avg_wind_speed", "sum_precipitation"]])
 
-# --- MLOps Analytics Section ---
-st.header("MLOps Analytics & Model Monitoring")
+st.header("Analytics & Model Monitoring")
 mlops_col1, mlops_col2 = st.columns([2, 2])
 
 with mlops_col1:
