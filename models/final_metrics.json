@@ -1,0 +1,26 @@
+{
+  "model_name": "D_LR",
+  "algorithm": "D — Logistic Regression",
+  "threshold": 0.57,
+  "accuracy": 0.6987951807228916,
+  "recall_high": 0.8043478260869565,
+  "precision_high": 0.6981132075471698,
+  "f1_high": 0.7474747474747475,
+  "auc_roc": 0.7238542890716804,
+  "confusion_matrix": {
+    "tn": 21,
+    "fp": 16,
+    "fn": 9,
+    "tp": 37
+  },
+  "test_size": 83,
+  "train_size": 93,
+  "train_size_target1": 28,
+  "test_size_target1": 46,
+  "n_features": 75,
+  "goals_met": {
+    "recall_080": true,
+    "accuracy_080": false,
+    "both": false
+  }
+}

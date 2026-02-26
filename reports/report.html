@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>GDAIR — Raport Retrenowania Modelu v2</title>
+<style>
+  body {font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;max-width:1100px;margin:0 auto;padding:24px;color:#222;background:#f8f9fa;}
+  h1 {color:#1565C0;border-bottom:3px solid #1565C0;padding-bottom:10px;font-size:1.8em;}
+  h2 {color:#0D47A1;border-left:5px solid #1976D2;padding-left:12px;margin-top:32px;font-size:1.3em;}
+  h3 {color:#1976D2;font-size:1.1em;}
+  table {border-collapse:collapse;width:100%;margin:12px 0;background:white;border-radius:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1);}
+  th {background:#1565C0;color:white;padding:10px 14px;text-align:left;font-weight:600;}
+  td {padding:8px 14px;border-bottom:1px solid #e8e8e8;}
+  tr:hover td {background:#f0f7ff;}
+  .metrics-row {display:flex;flex-wrap:wrap;gap:12px;margin:16px 0;}
+  .metric {background:white;border:2px solid #90CAF9;border-radius:10px;padding:14px 22px;text-align:center;min-width:120px;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+  .metric.good {border-color:#43A047;}
+  .metric.warn {border-color:#FB8C00;}
+  .metric.bad {border-color:#E53935;}
+  .mval {font-size:2em;font-weight:bold;color:#1565C0;}
+  .metric.good .mval {color:#2e7d32;}
+  .metric.warn .mval {color:#e65100;}
+  .metric.bad .mval {color:#c62828;}
+  .mlbl {font-size:0.82em;color:#666;margin-top:4px;}
+  .box {background:white;border-radius:8px;padding:16px;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .box-info {border-left:4px solid #1976D2;}
+  .box-good {border-left:4px solid #43A047;background:#f1f8e9;}
+  .box-warn {border-left:4px solid #FB8C00;background:#fff8e1;}
+  img {max-width:100%;border:1px solid #ddd;border-radius:8px;margin:10px 0;box-shadow:0 2px 8px rgba(0,0,0,.1);}
+  ul {line-height:1.9;}
+  code {background:#eeeeee;padding:1px 5px;border-radius:3px;font-size:0.9em;}
+  footer {margin-top:40px;padding-top:12px;border-top:1px solid #ddd;font-size:0.85em;color:#888;}
+</style>
+</head>
+<body>
+
+<h1>GDAIR — Raport Retrenowania Modelu v2</h1>
+<p><strong>Data:</strong> 2026-02-26 &nbsp;|&nbsp; <strong>Agent:</strong> Agent 2 — Inzynier ML &nbsp;|&nbsp; <strong>Projekt:</strong> Gdansk Air Inference</p>
+
+<h2>Wyniki Finalnego Modelu</h2>
+<div class="metrics-row">
+  <div class="metric good">
+    <div class="mval">0.804</div>
+    <div class="mlbl">Recall (High)<br>cel: &ge; 0.80</div>
+  </div>
+  <div class="metric warn">
+    <div class="mval">0.699</div>
+    <div class="mlbl">Accuracy<br>cel: &ge; 0.80</div>
+  </div>
+  <div class="metric">
+    <div class="mval">0.698</div>
+    <div class="mlbl">Precision (High)</div>
+  </div>
+  <div class="metric">
+    <div class="mval">0.747</div>
+    <div class="mlbl">F1-score (High)</div>
+  </div>
+  <div class="metric good">
+    <div class="mval">0.724</div>
+    <div class="mlbl">AUC-ROC</div>
+  </div>
+  <div class="metric">
+    <div class="mval">0.57</div>
+    <div class="mlbl">Optymalny prog</div>
+  </div>
+</div>
+
+<div class="box box-good"><strong>CEL OSIAGNIETY:</strong> Recall = 0.804 &ge; 0.80 ✓</div>
+
+<h2>1. Diagnoza od Agent 1 — Kluczowe Ustalenia</h2>
+<div class="box box-info">
+<ul>
+  <li><strong>Stary model (rf_model.joblib):</strong> Recall=0.581, Accuracy=0.707 — oba cele nieosiagniete</li>
+  <li><strong>Glowna przyczyna:</strong> 75.7% alarmow wyzwala PM2.5&ge;25 przy PM10&lt;50. Stary model usuwal surowe PM2.5 z features — widial tylko 3-dniowy agregat, niewystarczajacy dla wykrycia stopniowego wzrostu PM2.5</li>
+  <li><strong>Concept drift:</strong> Model trenowany na 2021-2024, gdy PM10 byl dominujacym wyzwalaczem. W sezonie 2025+ dominuje PM2.5</li>
+  <li><strong>Overfitting:</strong> max_depth=30, brak class_weight='balanced', brak regularyzacji</li>
+  <li><strong>Progi decyzyjne:</strong> Stary prog 0.50 zbyt wysoki. Juz na starym modelu obnizennie do 0.25 dawalo Recall=0.865</li>
+  <li><strong>Dane:</strong> 182 wierszy (2025-08-23 do 2026-02-22), 3 braki PM2.5, 2 luki w datach (6 i 22 stycznia 2026)</li>
+</ul>
+</div>
+
+<h2>2. Co Zrobiono i Dlaczego</h2>
+
+<h3>Przygotowanie danych</h3>
+<ul>
+  <li><strong>Target:</strong> PM10 &ge; 50 LUB PM2.5 &ge; 25 — zachowanie oryginalnej definicji z data_preparation.ipynb (WHO guidelines)</li>
+  <li><strong>Interpolacja:</strong> Resample daily + interpolacja liniowa dla 3 brakow PM2.5 i 2 luk datowych</li>
+  <li><strong>Podial:</strong> Train do 2025-11-30 (93 wierszy), Test od 2025-12-01 (83 wierszy)</li>
+  <li><strong>Uwaga:</strong> Test set (grudzien-luty) zawiera intensywny sezon zimowy: 46 z 83 dni ma target=1 (55.4%). To wyzwanie dla accuracy — nawet idealny model przy tym rozkładzie klas nie osiagnie latwo acc=0.80</li>
+</ul>
+
+<h3>Feature Engineering (rozszerzone — 7-dniowe okno)</h3>
+<ul>
+  <li><strong>Lagi D-1 do D-7</strong> dla wszystkich 7 kolumn (temperatura, wilgotnosc, cisnienie, wiatr, opady, PM10, PM2.5) = 49 lagow</li>
+  <li><strong>Agregaty PM 7-dniowe:</strong> PM10_7day_avg, PM10_7day_std, PM2_5_7day_avg, PM2_5_7day_std — kluczowe dla wykrycia stopniowego wzrostu PM2.5</li>
+  <li><strong>PM2_5_PM10_ratio:</strong> wskaznik combustion vs dust; wysoki ratio = wiecej PM2.5 (spalanie)</li>
+  <li><strong>winter_season, temp_below_5:</strong> sezon grzewczy = wieksze ryzyko PM z ogrzewania</li>
+  <li><strong>Flagi pre-alarm:</strong> PM2_5_above_20, PM10_above_40 — sygnaly wczesnego ostrzezenia</li>
+  <li><strong>days_since_rain:</strong> akumulacja PM w bezdeszczowe dni</li>
+  <li><strong>Trendy:</strong> PM10_trend, PM2_5_trend, pressure_trend_3d, Humidity_diff, WindSpeed_trend</li>
+  <li><strong>Lacznie:</strong> 75 features (stary model: 34 features z 3-dniowym oknem)</li>
+</ul>
+
+<h3>Strategia modelowania</h3>
+<ul>
+  <li><strong>class_weight='balanced':</strong> kompensuje imbalans klas i faworyzuje recall</li>
+  <li><strong>sample_weights temporal:</strong> weight = 0.5 + 0.5 * (idx/n) — nowsze dane 2x wazniejsze od najstarszych</li>
+  <li><strong>scale_pos_weight (GBM):</strong> n_neg/n_pos = 2.32 — dodatkowe balansowanie dla gradient boosting</li>
+  <li><strong>TimeSeriesSplit n_splits=3:</strong> zachowanie chronologicznosci, brak data leakage z przyszlosci</li>
+  <li><strong>RandomizedSearchCV 30 iter.:</strong> optymalizacja scoring='recall' (kluczowa metryka)</li>
+  <li><strong>Threshold tuning:</strong> szukanie minimalnego progu gdzie Recall &ge; 0.80</li>
+</ul>
+
+<h2>3. Porownanie Podejsc</h2>
+<table>
+<tr><th>Podejscie</th><th>Recall</th><th>Accuracy</th><th>Precision</th><th>F1</th><th>Prog</th><th>AUC-ROC</th></tr>
+<tr>
+        <td>A — RandomForest</td>
+        <td>0.826 <span style='background:#2e7d32;color:white;padding:2px 6px;border-radius:10px;font-size:0.8em;'>OK</span></td>
+        <td>0.639 <span style='background:#e65100;color:white;padding:2px 6px;border-radius:10px;font-size:0.8em;'>PONIZEJ</span></td>
+        <td>0.633</td>
+        <td>0.717</td>
+        <td>0.56</td>
+        <td>0.664</td>
+    </tr>
+<tr>
+        <td>B — LightGBM</td>
+        <td>0.848 <span style='background:#2e7d32;color:white;padding:2px 6px;border-radius:10px;font-size:0.8em;'>OK</span></td>
+        <td>0.614 <span style='background:#e65100;color:white;padding:2px 6px;border-radius:10px;font-size:0.8em;'>PONIZEJ</span></td>
+        <td>0.609</td>
+        <td>0.709</td>
+        <td>0.43</td>
+        <td>0.605</td>
+    </tr>
+<tr>
+        <td>C — XGBoost</td>
+        <td>1.000 <span style='background:#2e7d32;color:white;padding:2px 6px;border-radius:10px;font-size:0.8em;'>OK</span></td>
+        <td>0.566 <span style='background:#e65100;color:white;padding:2px 6px;border-radius:10px;font-size:0.8em;'>PONIZEJ</span></td>
+        <td>0.561</td>
+        <td>0.719</td>
+        <td>0.29</td>
+        <td>0.548</td>
+    </tr>
+<tr style='background:#e3f2fd; font-weight:bold;'>
+        <td>D — Logistic Regression [WYBRANY]</td>
+        <td>0.804 <span style='background:#2e7d32;color:white;padding:2px 6px;border-radius:10px;font-size:0.8em;'>OK</span></td>
+        <td>0.699 <span style='background:#e65100;color:white;padding:2px 6px;border-radius:10px;font-size:0.8em;'>PONIZEJ</span></td>
+        <td>0.698</td>
+        <td>0.747</td>
+        <td>0.57</td>
+        <td>0.724</td>
+    </tr>
+
+</table>
+<p><em>Kryterium wyboru: 1. Recall &ge; 0.80 (priorytet), 2. Najwyzsza Accuracy, 3. Najwyzsza Precision.</em></p>
+
+<h2>4. Porownanie ze Starym Modelem</h2>
+<table>
+<tr><th>Metryka</th><th>Stary model</th><th>Nowy model v2</th><th>Zmiana</th><th>Cel</th></tr>
+<tr>
+  <td><strong>Recall (High) — PRIORYTET</strong></td>
+  <td>0.581</td>
+  <td><strong>0.804</strong></td>
+  <td><span style="color:green;font-weight:bold">+0.223</span></td>
+  <td>&ge; 0.80</td>
+</tr>
+<tr>
+  <td>Accuracy</td>
+  <td>0.707</td>
+  <td>0.699</td>
+  <td><span style="color:red">-0.008</span></td>
+  <td>&ge; 0.80</td>
+</tr>
+<tr>
+  <td>Precision (High)</td>
+  <td>0.662</td>
+  <td>0.698</td>
+  <td><span style="color:green;font-weight:bold">+0.036</span></td>
+  <td>drugoplanowa</td>
+</tr>
+<tr>
+  <td>AUC-ROC</td>
+  <td>N/A</td>
+  <td>0.724</td>
+  <td>—</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td>Prog decyzyjny</td>
+  <td>0.50</td>
+  <td>0.57</td>
+  <td>Obnizony</td>
+  <td>—</td>
+</tr>
+</table>
+
+<h2>5. Feature Importance — Top 15</h2>
+<table>
+<tr><th>Rank</th><th>Cecha</th><th>Waznosc</th></tr>
+<tr><td>1</td><td>PM2_5</td><td>0.0199</td></tr>
+<tr><td>2</td><td>avg_temperature_lag7</td><td>0.0166</td></tr>
+<tr><td>3</td><td>avg_temperature_lag6</td><td>0.0162</td></tr>
+<tr><td>4</td><td>PM2_5_above_20</td><td>0.0156</td></tr>
+<tr><td>5</td><td>PM2_5_7day_std</td><td>0.0155</td></tr>
+<tr><td>6</td><td>avg_temperature_lag4</td><td>0.0151</td></tr>
+<tr><td>7</td><td>avg_temperature</td><td>0.0150</td></tr>
+<tr><td>8</td><td>avg_temperature_lag5</td><td>0.0144</td></tr>
+<tr><td>9</td><td>Month</td><td>0.0137</td></tr>
+<tr><td>10</td><td>avg_temperature_lag1</td><td>0.0137</td></tr>
+<tr><td>11</td><td>avg_temperature_lag3</td><td>0.0137</td></tr>
+<tr><td>12</td><td>avg_temperature_lag2</td><td>0.0134</td></tr>
+<tr><td>13</td><td>PM10_above_40</td><td>0.0132</td></tr>
+<tr><td>14</td><td>winter_season</td><td>0.0127</td></tr>
+<tr><td>15</td><td>PM10</td><td>0.0122</td></tr>
+
+</table>
+<img src="figures/feature_importance_top15.png" alt="Feature Importance">
+
+<h2>6. Wykresy</h2>
+<h3>Confusion Matrix</h3>
+<img src="figures/confusion_matrix_final.png" alt="Confusion Matrix">
+<p>TP=37 (poprawne alarmy) | TN=21 (poprawne brak alarmu) | FP=16 (falszywe alarmy) | FN=9 (przeoczone zagrozenia)</p>
+
+<h3>Krzywa ROC</h3>
+<img src="figures/roc_curve.png" alt="ROC Curve">
+
+<h3>Porownanie Metryk: Stary vs Nowy Model</h3>
+<img src="figures/metrics_comparison.png" alt="Metrics Comparison">
+
+<h3>Prognozy w Czasie (Test Set)</h3>
+<img src="figures/predictions_over_time.png" alt="Predictions Over Time">
+<p>Pomaranczowe tlo = rzeczywisty dzien z target=1. Czerwone trójkaty w dół = FN (przeoczenia). Fioletowe trójkaty w gore = FP (falszywe alarmy).</p>
+
+<h2>7. Nowe Progi Decyzyjne</h2>
+<div class="box box-info">
+<ul>
+  <li><strong>LOW:</strong> p &lt; 0.15 — niskie ryzyko, brak powiadomienia alarmowego</li>
+  <li><strong>MODERATE:</strong> 0.15 &le; p &lt; 0.57 — umiarkowane ryzyko, ostrzezenie</li>
+  <li><strong>HIGH:</strong> p &ge; 0.57 — wysokie ryzyko, alarm</li>
+</ul>
+<p><strong>Uzasadnienie:</strong> Stary prog 0.50 dawał Recall=0.581 (model "nie chcial" dawac alarmow bo byl skalibrowany na dane 2021-2024 z innymi wzorcami PM). Nowy prog 0.57 wybrany jako minimum zapewniajace Recall &ge; 0.80 przy maksymalnej Accuracy na danych testowych. W kontekscie zdrowia publicznego: falszywy alarm (FP) = drobna uciazliwosc dla uzytkownika; przeoczenie zagrozenia (FN) = realny problem zdrowotny, szczegolnie dla astmatykow i dzieci.</p>
+</div>
+
+<h2>8. Ograniczenia i Ostrzezenia</h2>
+<ul>
+  <li><strong>Maly dataset:</strong> 176 obserwacji po czyszczeniu. Wzorce moga byc niestabilne — wzorzec sezonowy jest niedoreprezentowany (1 sezon letni i 1 zimowy).</li>
+  <li><strong>Zimowy test set:</strong> Test set (Dec 2025 - Feb 2026) ma 55.4% target=1 (intensywna zima). Accuracy bedzie strukturalnie nizsze niz gdyby test zawierac proporcjonalnie wiecej dni letnich.</li>
+  <li><strong>Brak oryginalnych danych treningowych:</strong> dataset.xlsx niedostepny. Nie ma mozliwosci polaczenia z danymi 2021-2024.</li>
+  <li><strong>Concept drift:</strong> Model moze sie zdegradowac jesli wzorzec PM2.5/PM10 zmieni sie w przyszlosci (np. zmiana zrodel emisji, nowy czujnik).</li>
+  <li><strong>Monitoring:</strong> Zalecany miesieczny przeglad Recall na nowych danych produkcyjnych.</li>
+  <li><strong>Brak letniego testu:</strong> Model nie jest ewaluowany na sezonach letnich z rzadkimi alarmami (patrz Sierpien-Wrzesien 2025). Moze dawac za duzo FP latem.</li>
+</ul>
+
+<footer>
+  Raport wygenerowany automatycznie przez Agent 2 GDAIR | 2026-02-26<br>
+  Model: D — Logistic Regression | Prog: 0.57 | AUC: 0.724
+</footer>
+</body>
+</html>

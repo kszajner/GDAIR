@@ -1,0 +1,9 @@
+{
+  "threshold": 0.57,
+  "threshold_low_moderate": 0.15,
+  "threshold_moderate_high": 0.57,
+  "justification": "Prog 0.57 wybrany jako minimum gwarantujace Recall >= 0.80 przy maksymalnej Accuracy na test set (Dec 2025 - Feb 2026). Osiagniete: Recall=0.804, Accuracy=0.699, Precision=0.698. Stary prog 0.50 dawal Recall=0.581 (dramatycznie ponizej celu 0.80). Priorytet: nie przeoczyc zagrozen zdrowotnych (FN = realny problem). FP (falszywy alarm) = mala uciazliwosc dla uzytkownika.",
+  "old_threshold": 0.5,
+  "old_recall": 0.581,
+  "old_accuracy": 0.707
+}

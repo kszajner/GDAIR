@@ -1,8 +1,8 @@
 joblib
 pandas
+numpy
 requests
 holidays
-datetime
 scikit-learn
 streamlit
 plotly

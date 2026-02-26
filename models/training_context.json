@@ -1,0 +1,64 @@
+{
+  "rows_before": 182,
+  "rows_after": 176,
+  "train_size": 93,
+  "test_size": 83,
+  "train_target1": 28,
+  "train_target1_pct": 30.107526881720432,
+  "test_target1": 46,
+  "test_target1_pct": 55.42168674698795,
+  "n_features": 75,
+  "best_key": "D_LR",
+  "final_threshold": 0.57,
+  "recall": 0.8043478260869565,
+  "accuracy": 0.6987951807228916,
+  "precision": 0.6981132075471698,
+  "f1": 0.7474747474747475,
+  "auc": 0.7238542890716804,
+  "tp": 37,
+  "fp": 16,
+  "tn": 21,
+  "fn": 9,
+  "all_results": {
+    "A_RF": {
+      "name": "A — RandomForest",
+      "recall": 0.8260869565217391,
+      "accuracy": 0.6385542168674698,
+      "precision": 0.6333333333333333,
+      "f1": 0.7169811320754716,
+      "threshold": 0.56,
+      "auc": 0.663924794359577,
+      "params": "{'n_estimators': 200, 'min_samples_split': 5, 'min_samples_leaf': 10, 'max_features': 'sqrt', 'max_depth': 10, 'class_weight': 'balanced'}"
+    },
+    "B_LGB": {
+      "name": "B — LightGBM",
+      "recall": 0.8478260869565217,
+      "accuracy": 0.6144578313253012,
+      "precision": 0.609375,
+      "f1": 0.7090909090909091,
+      "threshold": 0.43,
+      "auc": 0.6051703877790834,
+      "params": "{'subsample': 0.7, 'reg_lambda': 0.5, 'reg_alpha': 0.5, 'num_leaves': 15, 'n_estimators': 500, 'min_child_samples': 5, 'max_depth': 10, 'learning_rate': 0.1, 'colsample_bytree': 1.0}"
+    },
+    "C_XGB": {
+      "name": "C — XGBoost",
+      "recall": 1.0,
+      "accuracy": 0.5662650602409639,
+      "precision": 0.5609756097560976,
+      "f1": 0.71875,
+      "threshold": 0.29,
+      "auc": 0.5481786133960047,
+      "params": "{'subsample': 0.9, 'reg_lambda': 0.5, 'reg_alpha': 0, 'n_estimators': 100, 'min_child_weight': 1, 'max_depth': 5, 'learning_rate': 0.01, 'gamma': 0.5, 'colsample_bytree': 0.9}"
+    },
+    "D_LR": {
+      "name": "D — Logistic Regression",
+      "recall": 0.8043478260869565,
+      "accuracy": 0.6987951807228916,
+      "precision": 0.6981132075471698,
+      "f1": 0.7474747474747475,
+      "threshold": 0.57,
+      "auc": 0.7238542890716804,
+      "params": "{'lr__solver': 'liblinear', 'lr__penalty': 'l2', 'lr__C': 0.001}"
+    }
+  }
+}
